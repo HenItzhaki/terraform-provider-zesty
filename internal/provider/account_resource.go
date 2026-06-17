@@ -82,12 +82,6 @@ func (r *AccountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Default:     stringdefault.StaticString("us-east-1"),
 						Computed:    true,
 					},
-					"storage_class_name": schema.StringAttribute{
-						Description: "Storage class name of the cluster",
-						Optional:    true,
-						Default:     stringdefault.StaticString("ebs-sc"),
-						Computed:    true,
-					},
 					"products": schema.ListNestedAttribute{
 						Description: "List of products activated on the account",
 						Required:    true,
@@ -195,13 +189,12 @@ func (r *AccountResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	payload := models.Payload{
-		AccountID:        plan.Account.ID.ValueString(),
-		Region:           plan.Account.Region.ValueStringPointer(),
-		CloudProvider:    models.CloudProvider(plan.Account.CloudProvider.ValueString()),
-		RoleARN:          plan.Account.RoleARN.ValueString(),
-		ExternalID:       plan.Account.ExternalID.ValueString(),
-		Products:         map[models.Product]models.ProductDetails{},
-		StorageClassName: plan.Account.StorageClassName.ValueString(),
+		AccountID:     plan.Account.ID.ValueString(),
+		Region:        plan.Account.Region.ValueStringPointer(),
+		CloudProvider: models.CloudProvider(plan.Account.CloudProvider.ValueString()),
+		RoleARN:       plan.Account.RoleARN.ValueString(),
+		ExternalID:    plan.Account.ExternalID.ValueString(),
+		Products:      map[models.Product]models.ProductDetails{},
 	}
 	for _, product := range plan.Account.Products {
 		payload.Products[models.Product(product.Name.ValueString())] = models.ProductDetails{
@@ -300,13 +293,12 @@ func (r *AccountResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	payload := models.Payload{
-		AccountID:        plan.Account.ID.ValueString(),
-		Region:           plan.Account.Region.ValueStringPointer(),
-		CloudProvider:    models.CloudProvider(plan.Account.CloudProvider.ValueString()),
-		RoleARN:          plan.Account.RoleARN.ValueString(),
-		ExternalID:       plan.Account.ExternalID.ValueString(),
-		Products:         map[models.Product]models.ProductDetails{},
-		StorageClassName: plan.Account.StorageClassName.ValueString(),
+		AccountID:     plan.Account.ID.ValueString(),
+		Region:        plan.Account.Region.ValueStringPointer(),
+		CloudProvider: models.CloudProvider(plan.Account.CloudProvider.ValueString()),
+		RoleARN:       plan.Account.RoleARN.ValueString(),
+		ExternalID:    plan.Account.ExternalID.ValueString(),
+		Products:      map[models.Product]models.ProductDetails{},
 	}
 	for _, product := range plan.Account.Products {
 		payload.Products[models.Product(product.Name.ValueString())] = models.ProductDetails{

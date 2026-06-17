@@ -56,7 +56,6 @@ Optional:
 - `athena` (Attributes) Athena resources data for the account (see [below for nested schema](#nestedatt--account--athena))
 - `cur` (Attributes) Cur export data for the account (see [below for nested schema](#nestedatt--account--cur))
 - `region` (String) Region of the cloud provider
-- `storage_class_name` (String) Storage class name of the cluster
 
 <a id="nestedatt--account--products"></a>
 ### Nested Schema for `account.products`

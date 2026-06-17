@@ -63,12 +63,11 @@ func ToModel(account *models.Account) (*accountModel, diag.Diagnostics) {
 	}
 
 	model := accountModel{
-		ID:               types.StringValue(account.AccountID),
-		Region:           types.StringPointerValue(account.Region),
-		CloudProvider:    types.StringValue(string(account.CloudProvider)),
-		RoleARN:          types.StringValue(roleARNString),
-		ExternalID:       types.StringValue(externalIDString),
-		StorageClassName: types.StringValue(account.StorageClassName),
+		ID:            types.StringValue(account.AccountID),
+		Region:        types.StringPointerValue(account.Region),
+		CloudProvider: types.StringValue(string(account.CloudProvider)),
+		RoleARN:       types.StringValue(roleARNString),
+		ExternalID:    types.StringValue(externalIDString),
 	}
 
 	var productNames []string

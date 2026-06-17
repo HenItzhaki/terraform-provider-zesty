@@ -35,15 +35,14 @@ type accountsDataSourceModel struct {
 }
 
 type accountModel struct {
-	ID               types.String   `tfsdk:"id"`
-	CloudProvider    types.String   `tfsdk:"cloud_provider"`
-	Region           types.String   `tfsdk:"region"`
-	RoleARN          types.String   `tfsdk:"role_arn"`
-	ExternalID       types.String   `tfsdk:"external_id"`
-	StorageClassName types.String   `tfsdk:"storage_class_name"`
-	Products         []productModel `tfsdk:"products"`
-	Cur              *curModel      `tfsdk:"cur"`
-	Athena           *athenaModel   `tfsdk:"athena"`
+	ID            types.String   `tfsdk:"id"`
+	CloudProvider types.String   `tfsdk:"cloud_provider"`
+	Region        types.String   `tfsdk:"region"`
+	RoleARN       types.String   `tfsdk:"role_arn"`
+	ExternalID    types.String   `tfsdk:"external_id"`
+	Products      []productModel `tfsdk:"products"`
+	Cur           *curModel      `tfsdk:"cur"`
+	Athena        *athenaModel   `tfsdk:"athena"`
 }
 
 type productModel struct {

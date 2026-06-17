@@ -41,22 +41,20 @@ type AthenaDetails struct {
 }
 
 type Payload struct {
-	AccountID        string                     `json:"accountID"`
-	CloudProvider    CloudProvider              `json:"cloudProvider"`
-	Region           *string                    `json:"region,omitempty"`
-	RoleARN          string                     `json:"roleARN"`
-	ExternalID       string                     `json:"externalID"`
-	StorageClassName string                     `json:"storageClassName"`
-	Products         map[Product]ProductDetails `json:"products"`
-	Cur              *CurDetails                `json:"cur,omitempty"`
-	Athena           *AthenaDetails             `json:"athena,omitempty"`
+	AccountID     string                     `json:"accountID"`
+	CloudProvider CloudProvider              `json:"cloudProvider"`
+	Region        *string                    `json:"region,omitempty"`
+	RoleARN       string                     `json:"roleARN"`
+	ExternalID    string                     `json:"externalID"`
+	Products      map[Product]ProductDetails `json:"products"`
+	Cur           *CurDetails                `json:"cur,omitempty"`
+	Athena        *AthenaDetails             `json:"athena,omitempty"`
 }
 
 type Account struct {
 	OrganizationID   int64
 	OnboardingStatus OnboardingStatus
 	AccountID        string
-	StorageClassName string
 	Region           *string
 	CloudProvider    CloudProvider
 	Products         map[Product]ProductDetails
