@@ -46,7 +46,7 @@ resource "zesty_account" "example" {
 Required:
 
 - `cloud_provider` (String) Name of cloud provider (e.g. AWS, GCP, Azure)
-- `external_id` (String, Sensitive) External ID (UUID)
+- `external_id` (String) External ID (UUID)
 - `id` (String) Account ID
 - `products` (Attributes List) List of products activated on the account (see [below for nested schema](#nestedatt--account--products))
 - `role_arn` (String) Role ARN generated on the cloud provider

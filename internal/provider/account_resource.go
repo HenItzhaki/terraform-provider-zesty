@@ -75,7 +75,6 @@ func (r *AccountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"external_id": schema.StringAttribute{
 						Description: "External ID (UUID)",
 						Required:    true,
-						Sensitive:   true,
 						PlanModifiers: []planmodifier.String{
 							preserveImportedExternalID(),
 						},
