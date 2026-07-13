@@ -3,14 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/zesty-co/terraform-provider-zesty/internal/client"
-	"github.com/zesty-co/terraform-provider-zesty/internal/models"
 )
 
 type AccountsDataSource struct {
@@ -35,20 +33,25 @@ type accountsDataSourceModel struct {
 }
 
 type accountModel struct {
-	ID            types.String   `tfsdk:"id"`
-	CloudProvider types.String   `tfsdk:"cloud_provider"`
-	Region        types.String   `tfsdk:"region"`
-	RoleARN       types.String   `tfsdk:"role_arn"`
-	ExternalID    types.String   `tfsdk:"external_id"`
-	Products      []productModel `tfsdk:"products"`
-	Cur           *curModel      `tfsdk:"cur"`
-	Athena        *athenaModel   `tfsdk:"athena"`
+	ID            types.String  `tfsdk:"id"`
+	CloudProvider types.String  `tfsdk:"cloud_provider"`
+	Region        types.String  `tfsdk:"region"`
+	RoleARN       types.String  `tfsdk:"role_arn"`
+	ExternalID    types.String  `tfsdk:"external_id"`
+	Products      productsModel `tfsdk:"products"`
+	Cur           *curModel     `tfsdk:"cur"`
+	Athena        *athenaModel  `tfsdk:"athena"`
 }
 
 type productModel struct {
-	Name   types.String `tfsdk:"name"`
 	Active types.Bool   `tfsdk:"active"`
 	Values types.String `tfsdk:"values"`
+}
+
+type productsModel struct {
+	CM        *productModel `tfsdk:"cm"`
+	Kompass   *productModel `tfsdk:"kompass"`
+	ZestyDisk *productModel `tfsdk:"zesty_disk"`
 }
 
 type curModel struct {
@@ -97,24 +100,13 @@ func (d *AccountsDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 							Optional: true,
 							Computed: false,
 						},
-						"products": schema.ListNestedAttribute{
-							Description: "List of products activated on the account",
+						"products": schema.SingleNestedAttribute{
+							Description: "Products activated on the account.",
 							Computed:    true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"name": schema.StringAttribute{
-										Description: "Name of product (e.g. Kompass)",
-										Computed:    true,
-									},
-									"active": schema.BoolAttribute{
-										Description: "Status of product",
-										Computed:    true,
-									},
-									"values": schema.StringAttribute{
-										Description: "Key-value pairs of product-specific values",
-										Computed:    true,
-									},
-								},
+							Attributes: map[string]schema.Attribute{
+								"cm":         accountsDataSourceProductSchema(),
+								"kompass":    accountsDataSourceProductSchema(),
+								"zesty_disk": accountsDataSourceProductSchema(),
 							},
 						},
 						"cur": schema.SingleNestedAttribute{
@@ -176,6 +168,22 @@ func (d *AccountsDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 	}
 }
 
+func accountsDataSourceProductSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Computed: true,
+		Attributes: map[string]schema.Attribute{
+			"active": schema.BoolAttribute{
+				Description: "Status of product",
+				Computed:    true,
+			},
+			"values": schema.StringAttribute{
+				Description: "Key-value pairs of product-specific values",
+				Computed:    true,
+			},
+		},
+	}
+}
+
 func (d *AccountsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state accountsDataSourceModel
 
@@ -231,18 +239,17 @@ func (d *AccountsDataSource) Read(ctx context.Context, req datasource.ReadReques
 			ExternalID:    types.StringValue(externalIDString),
 		}
 
-		var productNames []string
-		for name := range account.Products {
-			productNames = append(productNames, string(name))
-		}
-		sort.Strings(productNames)
-
-		for _, name := range productNames {
-			details := account.Products[models.Product(name)]
-			accountState.Products = append(accountState.Products, productModel{
-				Name:   types.StringValue(name),
+		for name, details := range account.Products {
+			if !setProductModel(&accountState.Products, name, productModel{
 				Active: types.BoolValue(details.Active),
-			})
+				Values: types.StringNull(),
+			}) {
+				resp.Diagnostics.AddError(
+					"Unsupported product from API",
+					fmt.Sprintf("Product %q is not supported by the Terraform schema.", name),
+				)
+				return
+			}
 		}
 
 		tflog.Info(ctx, "Adding account to state", map[string]any{"account": accountState})

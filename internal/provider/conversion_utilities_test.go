@@ -51,7 +51,7 @@ func TestToModel(t *testing.T) {
 					},
 				},
 				Products: map[models.Product]models.ProductDetails{
-					"Kompass": {
+					models.Kompass: {
 						Active: true,
 					},
 				},
@@ -68,7 +68,7 @@ func TestToModel(t *testing.T) {
 					"values":     map[string]any{},
 				},
 				Products: map[models.Product]models.ProductDetails{
-					"CM": {
+					models.CM: {
 						Active: true,
 					},
 				},
@@ -103,8 +103,44 @@ func TestToModel(t *testing.T) {
 				assert.Equal(t, types.StringValue(string(tt.account.CloudProvider)), model.CloudProvider)
 				assert.Equal(t, types.StringValue(tt.account.AdditionalData["roleARN"].(string)), model.RoleARN)
 				assert.Equal(t, types.StringValue(tt.account.AdditionalData["externalID"].(string)), model.ExternalID)
-				assert.Len(t, model.Products, len(tt.account.Products))
+				for product := range tt.account.Products {
+					switch product {
+					case models.CM:
+						assert.NotNil(t, model.Products.CM)
+					case models.Kompass:
+						assert.NotNil(t, model.Products.Kompass)
+					case models.ZestyDisk:
+						assert.NotNil(t, model.Products.ZestyDisk)
+					}
+				}
 			}
 		})
 	}
+}
+
+func TestToModelAssignsValuesOnlyToKompass(t *testing.T) {
+	account := &models.Account{
+		AccountID:     "acc",
+		CloudProvider: "aws",
+		AdditionalData: map[string]any{
+			"roleARN":    "arn:aws:iam::123456789012:role/example",
+			"externalID": "external-id",
+			"values":     map[string]any{"kompass": "value"},
+		},
+		Products: map[models.Product]models.ProductDetails{
+			models.CM:        {Active: true},
+			models.Kompass:   {Active: true},
+			models.ZestyDisk: {Active: true},
+		},
+	}
+
+	model, diags := provider.ToModel(account)
+	require.False(t, diags.HasError())
+	require.NotNil(t, model.Products.CM)
+	require.NotNil(t, model.Products.Kompass)
+	require.NotNil(t, model.Products.ZestyDisk)
+
+	assert.True(t, model.Products.CM.Values.IsNull())
+	assert.Equal(t, types.StringValue("kompass: value\n"), model.Products.Kompass.Values)
+	assert.True(t, model.Products.ZestyDisk.Values.IsNull())
 }

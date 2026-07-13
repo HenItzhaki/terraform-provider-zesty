@@ -20,10 +20,11 @@ resource "zesty_account" "example" {
     cloud_provider = "AWS"
     role_arn       = "arn:aws:iam::123456789012:role/ZestyIamRole"
     external_id    = "f1f0a7f7-a523-4197-9e19-ffd205a5bc20"
-    products = [{
-      name   = "Kompass"
-      active = true
-    }],
+    products = {
+      kompass = {
+        active = true
+      }
+    }
   }
 }
 ```
@@ -48,7 +49,7 @@ Required:
 - `cloud_provider` (String) Name of cloud provider (e.g. AWS, GCP, Azure)
 - `external_id` (String) External ID (UUID)
 - `id` (String) Account ID
-- `products` (Attributes List) List of products activated on the account (see [below for nested schema](#nestedatt--account--products))
+- `products` (Attributes) Products activated on the account. (see [below for nested schema](#nestedatt--account--products))
 - `role_arn` (String) Role ARN generated on the cloud provider
 
 Optional:
@@ -60,14 +61,47 @@ Optional:
 <a id="nestedatt--account--products"></a>
 ### Nested Schema for `account.products`
 
-Required:
+Optional:
+
+- `cm` (Attributes) (see [below for nested schema](#nestedatt--account--products--cm))
+- `kompass` (Attributes) (see [below for nested schema](#nestedatt--account--products--kompass))
+- `zesty_disk` (Attributes) (see [below for nested schema](#nestedatt--account--products--zesty_disk))
+
+<a id="nestedatt--account--products--cm"></a>
+### Nested Schema for `account.products.cm`
+
+Optional:
 
 - `active` (Boolean) Status of product
-- `name` (String) Name of product (e.g. Kompass)
 
 Read-Only:
 
 - `values` (String) Key-value pairs of product-specific values
+
+
+<a id="nestedatt--account--products--kompass"></a>
+### Nested Schema for `account.products.kompass`
+
+Optional:
+
+- `active` (Boolean) Status of product
+
+Read-Only:
+
+- `values` (String) Key-value pairs of product-specific values
+
+
+<a id="nestedatt--account--products--zesty_disk"></a>
+### Nested Schema for `account.products.zesty_disk`
+
+Optional:
+
+- `active` (Boolean) Status of product
+
+Read-Only:
+
+- `values` (String) Key-value pairs of product-specific values
+
 
 
 <a id="nestedatt--account--athena"></a>

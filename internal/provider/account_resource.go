@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -22,9 +23,11 @@ type AccountResource struct {
 }
 
 var (
-	_ resource.Resource                = &AccountResource{}
-	_ resource.ResourceWithConfigure   = &AccountResource{}
-	_ resource.ResourceWithImportState = &AccountResource{}
+	_ resource.Resource                 = &AccountResource{}
+	_ resource.ResourceWithConfigure    = &AccountResource{}
+	_ resource.ResourceWithImportState  = &AccountResource{}
+	_ resource.ResourceWithModifyPlan   = &AccountResource{}
+	_ resource.ResourceWithUpgradeState = &AccountResource{}
 )
 
 func NewAccountResource() resource.Resource {
@@ -43,7 +46,65 @@ type accountResourceModel struct {
 
 // Schema defines the schema for the resource.
 func (r *AccountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+	resp.Schema = accountResourceSchemaV1()
+}
+
+func accountResourceSchemaV1() schema.Schema {
+	return accountResourceSchema(1, schema.SingleNestedAttribute{
+		Description: "Products activated on the account.",
+		Required:    true,
+		Attributes: map[string]schema.Attribute{
+			"cm":         accountResourceProductSchema(),
+			"kompass":    accountResourceProductSchema(),
+			"zesty_disk": accountResourceProductSchema(),
+		},
+	})
+}
+
+func accountResourceProductSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"active": schema.BoolAttribute{
+				Description: "Status of product",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(true),
+			},
+			"values": schema.StringAttribute{
+				Description: "Key-value pairs of product-specific values",
+				Computed:    true,
+			},
+		},
+	}
+}
+
+func accountResourceSchemaV0() schema.Schema {
+	return accountResourceSchema(0, schema.ListNestedAttribute{
+		Description: "List of products activated on the account",
+		Required:    true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"name": schema.StringAttribute{
+					Description: "Name of product (e.g. Kompass)",
+					Required:    true,
+				},
+				"active": schema.BoolAttribute{
+					Description: "Status of product",
+					Required:    true,
+				},
+				"values": schema.StringAttribute{
+					Description: "Key-value pairs of product-specific values",
+					Computed:    true,
+				},
+			},
+		},
+	})
+}
+
+func accountResourceSchema(version int64, products schema.Attribute) schema.Schema {
+	return schema.Schema{
+		Version:     version,
 		Description: "Manages an account.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -82,26 +143,7 @@ func (r *AccountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Default:     stringdefault.StaticString("us-east-1"),
 						Computed:    true,
 					},
-					"products": schema.ListNestedAttribute{
-						Description: "List of products activated on the account",
-						Required:    true,
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Description: "Name of product (e.g. Kompass)",
-									Required:    true,
-								},
-								"active": schema.BoolAttribute{
-									Description: "Status of product",
-									Required:    true,
-								},
-								"values": schema.StringAttribute{
-									Description: "Key-value pairs of product-specific values",
-									Computed:    true,
-								},
-							},
-						},
-					},
+					"products": products,
 					"cur": schema.SingleNestedAttribute{
 						Description: "Cur export data for the account",
 						Optional:    true,
@@ -194,12 +236,7 @@ func (r *AccountResource) Create(ctx context.Context, req resource.CreateRequest
 		CloudProvider: models.CloudProvider(plan.Account.CloudProvider.ValueString()),
 		RoleARN:       plan.Account.RoleARN.ValueString(),
 		ExternalID:    plan.Account.ExternalID.ValueString(),
-		Products:      map[models.Product]models.ProductDetails{},
-	}
-	for _, product := range plan.Account.Products {
-		payload.Products[models.Product(product.Name.ValueString())] = models.ProductDetails{
-			Active: product.Active.ValueBool(),
-		}
+		Products:      productPayload(plan.Account.Products),
 	}
 
 	if plan.Account.Cur != nil {
@@ -292,18 +329,20 @@ func (r *AccountResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	var state accountResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	payload := models.Payload{
 		AccountID:     plan.Account.ID.ValueString(),
 		Region:        plan.Account.Region.ValueStringPointer(),
 		CloudProvider: models.CloudProvider(plan.Account.CloudProvider.ValueString()),
 		RoleARN:       plan.Account.RoleARN.ValueString(),
 		ExternalID:    plan.Account.ExternalID.ValueString(),
-		Products:      map[models.Product]models.ProductDetails{},
-	}
-	for _, product := range plan.Account.Products {
-		payload.Products[models.Product(product.Name.ValueString())] = models.ProductDetails{
-			Active: product.Active.ValueBool(),
-		}
+		Products:      productPayload(plan.Account.Products),
 	}
 
 	if plan.Account.Cur != nil {
@@ -339,6 +378,14 @@ func (r *AccountResource) Update(ctx context.Context, req resource.UpdateRequest
 	model, diag := ToModel(updatedAccount)
 	resp.Diagnostics.Append(diag...)
 	if diag != nil {
+		return
+	}
+
+	if kompassValuesChangedUnexpectedly(state, plan, *model) {
+		resp.Diagnostics.AddError(
+			"Unexpected Kompass Values Change",
+			"The API changed Kompass values during an update that did not change any Kompass inputs. Terraform did not save the unexpected value. Run plan again to refresh the remote state before retrying.",
+		)
 		return
 	}
 

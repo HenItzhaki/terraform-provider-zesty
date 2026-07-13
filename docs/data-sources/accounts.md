@@ -38,7 +38,7 @@ Read-Only:
 - `cloud_provider` (String) Name of cloud provider (e.g. AWS, GCP, Azure)
 - `external_id` (String) External ID (UUID)
 - `id` (String) Account ID
-- `products` (Attributes List) List of products activated on the account (see [below for nested schema](#nestedatt--accounts--products))
+- `products` (Attributes) Products activated on the account. (see [below for nested schema](#nestedatt--accounts--products))
 - `role_arn` (String) Role ARN generated on the cloud provider
 
 <a id="nestedatt--accounts--athena"></a>
@@ -73,6 +73,32 @@ Optional:
 
 Read-Only:
 
+- `cm` (Attributes) (see [below for nested schema](#nestedatt--accounts--products--cm))
+- `kompass` (Attributes) (see [below for nested schema](#nestedatt--accounts--products--kompass))
+- `zesty_disk` (Attributes) (see [below for nested schema](#nestedatt--accounts--products--zesty_disk))
+
+<a id="nestedatt--accounts--products--cm"></a>
+### Nested Schema for `accounts.products.cm`
+
+Read-Only:
+
 - `active` (Boolean) Status of product
-- `name` (String) Name of product (e.g. Kompass)
+- `values` (String) Key-value pairs of product-specific values
+
+
+<a id="nestedatt--accounts--products--kompass"></a>
+### Nested Schema for `accounts.products.kompass`
+
+Read-Only:
+
+- `active` (Boolean) Status of product
+- `values` (String) Key-value pairs of product-specific values
+
+
+<a id="nestedatt--accounts--products--zesty_disk"></a>
+### Nested Schema for `accounts.products.zesty_disk`
+
+Read-Only:
+
+- `active` (Boolean) Status of product
 - `values` (String) Key-value pairs of product-specific values

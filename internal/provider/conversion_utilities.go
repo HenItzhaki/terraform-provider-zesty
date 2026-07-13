@@ -2,7 +2,6 @@ package provider
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -70,20 +69,23 @@ func ToModel(account *models.Account) (*accountModel, diag.Diagnostics) {
 		ExternalID:    types.StringValue(externalIDString),
 	}
 
-	var productNames []string
-	for name := range account.Products {
-		productNames = append(productNames, string(name))
-	}
-	sort.Strings(productNames)
+	for name, details := range account.Products {
+		values := types.StringNull()
+		if name == models.Kompass {
+			values = types.StringValue(string(valuesBytes))
+		}
 
-	model.Products = []productModel{}
-	for _, name := range productNames {
-		details := account.Products[models.Product(name)]
-		model.Products = append(model.Products, productModel{
-			Name:   types.StringValue(name),
+		if !setProductModel(&model.Products, name, productModel{
 			Active: types.BoolValue(details.Active),
-			Values: types.StringValue(string(valuesBytes)),
-		})
+			Values: values,
+		}) {
+			return nil, diag.Diagnostics{
+				diag.NewErrorDiagnostic(
+					"Unsupported product from API",
+					fmt.Sprintf("Product %q is not supported by the Terraform schema.", name),
+				),
+			}
+		}
 	}
 	if account.Cur != nil {
 		model.Cur = &curModel{
